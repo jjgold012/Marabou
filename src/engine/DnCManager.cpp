@@ -31,12 +31,13 @@
 #include <cmath>
 #include <thread>
 
-static void dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
-                      std::atomic_uint &numUnsolvedSubQueries,
-                      std::atomic_bool &shouldQuitSolving,
-                      unsigned threadId, unsigned onlineDivides,
-                      float timeoutFactor, DivideStrategy divideStrategy )
+void DnCManager::dncSolve( WorkerQueue *workload, std::shared_ptr<Engine> engine,
+                           std::atomic_uint &numUnsolvedSubQueries,
+                           std::atomic_bool &shouldQuitSolving,
+                           unsigned threadId, unsigned onlineDivides,
+                           float timeoutFactor, DivideStrategy divideStrategy )
 {
+    log( Stringf( "Thread #%u on CPU %u", threadId, sched_getcpu() ) );
     DnCWorker worker( workload, engine, std::ref( numUnsolvedSubQueries ),
                       std::ref( shouldQuitSolving ), threadId, onlineDivides,
                       timeoutFactor, divideStrategy );
@@ -130,7 +131,9 @@ void DnCManager::solve( unsigned timeoutInSeconds )
     }
 
     // Spawn threads and start solving
-    std::list<std::thread> threads;
+    std::vector<std::thread> threads;
+    unsigned ncpus = std::thread::hardware_concurrency();
+    log( Stringf( "%u cpus detected", ncpus ) );
     for ( unsigned threadId = 0; threadId < _numWorkers; ++threadId )
     {
         threads.push_back( std::thread( dncSolve, workload,
@@ -139,6 +142,14 @@ void DnCManager::solve( unsigned timeoutInSeconds )
                                         std::ref( shouldQuitSolving ),
                                         threadId, _onlineDivides,
                                         _timeoutFactor, _divideStrategy ) );
+        cpu_set_t cpuset;
+        CPU_ZERO( &cpuset );
+        CPU_SET( threadId % ncpus, &cpuset );
+        int rc = pthread_setaffinity_np( threads[threadId].native_handle(),
+                                         sizeof(cpu_set_t), &cpuset );
+        if (rc != 0)
+            throw MarabouError( MarabouError::MULTITHREAD_ERROR,
+                                "DnCManager::threads" );
     }
 
     // Wait until either all subQueries are solved or a satisfying assignment is
@@ -363,6 +374,12 @@ void DnCManager::updateTimeoutReached( timespec startTime, unsigned long long
     struct timespec now = TimeUtils::sampleMicro();
     _timeoutReached = TimeUtils::timePassed( startTime, now ) >=
         timeoutInMicroSeconds;
+}
+
+void DnCManager::log( const String &message )
+{
+    if ( GlobalConfiguration::DNC_MANAGER_LOGGING )
+        printf( "DnCManager: %s\n", message.ascii() );
 }
 
 //
