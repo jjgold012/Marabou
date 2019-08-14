@@ -150,7 +150,6 @@ PYBIND11_MODULE(MarabouCore, m) {
         .def("setUpperBound", &InputQuery::setUpperBound)
         .def("setLowerBound", &InputQuery::setLowerBound)
         .def("getUpperBound", &InputQuery::getUpperBound)
-//        .def("getEquations", &InputQuery::getEquations)
         .def("getLowerBound", &InputQuery::getLowerBound)
         .def("setNumberOfVariables", &InputQuery::setNumberOfVariables)
         .def("addEquation", &InputQuery::addEquation)
@@ -176,7 +175,6 @@ PYBIND11_MODULE(MarabouCore, m) {
     eq.def(py::init<Equation::EquationType>());
     eq.def("addAddend", &Equation::addAddend);
     eq.def("setScalar", &Equation::setScalar);
-    eq.def("dump",&Equation::dump);
     py::enum_<Equation::EquationType>(eq, "EquationType")
         .value("EQ", Equation::EquationType::EQ)
         .value("GE", Equation::EquationType::GE)
