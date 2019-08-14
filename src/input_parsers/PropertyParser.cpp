@@ -16,20 +16,7 @@
 #include "Debug.h"
 #include "File.h"
 #include "InputParserError.h"
-#include "MStringf.h"
 #include "PropertyParser.h"
-#include <regex>
-
-static bool isScalar( const String &token )
-{
-    const std::regex floatRegex( "[-+]?[0-9]*\\.?[0-9]+" );
-    return std::regex_match( token.ascii(), floatRegex );
-}
-
-static double extractScalar( const String &token )
-{
-    return atof( token.ascii() );
-}
 
 void PropertyParser::parse( const String &propertyFilePath, InputQuery &inputQuery )
 {
@@ -66,15 +53,9 @@ void PropertyParser::processSingleLine( const String &line, InputQuery &inputQue
         throw InputParserError( InputParserError::UNEXPECTED_INPUT, line.ascii() );
 
     auto it = tokens.rbegin();
-    if ( !isScalar( *it ) )
-    {
-        Stringf message( "Right handside must be scalar in the line: %s", line.ascii() );
-        throw InputParserError( InputParserError::UNEXPECTED_INPUT, message.ascii() );
-    }
-
     double scalar = extractScalar( *it );
     ++it;
-    Equation::EquationType type = extractRelationSymbol( *it );
+    Equation::EquationType type = extractSign( *it );
     ++it;
 
     // Now extract the addends. In the special case where we only have
@@ -190,7 +171,7 @@ void PropertyParser::processSingleLine( const String &line, InputQuery &inputQue
     }
 }
 
-Equation::EquationType PropertyParser::extractRelationSymbol( const String &token )
+Equation::EquationType PropertyParser::extractSign( const String &token )
 {
     if ( token == ">=" )
         return Equation::GE;
@@ -200,6 +181,11 @@ Equation::EquationType PropertyParser::extractRelationSymbol( const String &toke
         return Equation::EQ;
 
     throw InputParserError( InputParserError::UNEXPECTED_INPUT, token.ascii() );
+}
+
+double PropertyParser::extractScalar( const String &token )
+{
+    return atof( token.ascii() );
 }
 
 //
