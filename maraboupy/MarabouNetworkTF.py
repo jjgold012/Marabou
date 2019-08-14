@@ -209,7 +209,7 @@ class MarabouNetworkTF(MarabouNetwork.MarabouNetwork):
             return tensor_util.MakeNdarray(tproto)
         ### END operations not requiring new variables ###
 
-        if op.node_def.op in ['MatMul', 'BiasAdd', 'Add', 'Sub', 'Relu', 'MaxPool', 'Conv2D', 'Placeholder','Mul']:
+        if op.node_def.op in ['MatMul', 'BiasAdd', 'Add', 'Sub', 'Relu', 'MaxPool', 'Conv2D', 'Placeholder']:
             # need to create variables for these
             return self.opToVarArray(op)
 
@@ -512,12 +512,7 @@ class MarabouNetworkTF(MarabouNetwork.MarabouNetwork):
         Arguments:
             op: (tf.op) for which to generate equations
         """
-        print(op.name,op.node_def.op)
-        # if op.name == "model/mul/y":
-        #     print("values =", op.values())
-        #     print(op)
-
-        if op.node_def.op in ['Identity', 'Reshape', 'Pack', 'Placeholder', 'Const', 'ConcatV2', 'Shape', 'StridedSlice','Split']:
+        if op.node_def.op in ['Identity', 'Reshape', 'Pack', 'Placeholder', 'Const', 'ConcatV2', 'Shape', 'StridedSlice']:
             return
         if op.node_def.op == 'MatMul':
             self.matMulEquations(op)
@@ -533,9 +528,6 @@ class MarabouNetworkTF(MarabouNetwork.MarabouNetwork):
             self.reluEquations(op)
         elif op.node_def.op == 'MaxPool':
             self.maxpoolEquations(op)
-        elif op.node_def.op == 'Mul':
-            # print("Error: Mul op observed and I'm not sure what to do about it..")
-            self.mulEquations(op)
         else:
             print("Operation ", str(op.node_def.op), " not implemented")
             raise NotImplementedError
